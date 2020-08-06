@@ -14,7 +14,10 @@ class ViewController: UIViewController {
         super.viewDidLoad()
         
         // Call Update Version Funtion
-        self.getUpdatedVersion()
+        let versionCheck = self.appUpdateAvailable()
+        if versionCheck {
+            self.getUpdatedVersion()
+        }
     }
 }
 
@@ -62,6 +65,41 @@ extension ViewController {
                 //Close Popup login
             }
         })
+    }
+    
+    func appUpdateAvailable() -> Bool {
+        var upgradeAvailable = false
+        // Get the main bundle of the app so that we can determine the app's version number
+        let bundle = Bundle.main
+        if let infoDictionary = bundle.infoDictionary {
+            // The URL for this app on the iTunes store uses the Apple ID for the  This never changes, so it is a constant
+            let bundleID = "com.ransoft.bella"//infoDictionary["CFBundleIdentifier"]
+            let storeInfoURL: String = "http://itunes.apple.com/lookup?bundleId=\(bundleID)"
+            
+            let urlOnAppStore = NSURL(string: storeInfoURL)
+            if let dataInJSON = NSData(contentsOf: urlOnAppStore! as URL) {
+                // Try to deserialize the JSON that we got
+                if let dict: NSDictionary = try? JSONSerialization.jsonObject(with: dataInJSON as Data, options: JSONSerialization.ReadingOptions.allowFragments) as? [String: AnyObject] as NSDictionary? {
+                    if let results:NSArray = dict["results"] as? NSArray {
+                        if results.count > 0 {
+                            let dictVersion = results[0] as AnyObject
+                            if let version = dictVersion["version"] as? String {
+                                print(version)
+                                if let currentVersion = infoDictionary["CFBundleShortVersionString"] as? String
+                                {
+                                    // Check if they are the same. If not, an upgrade is available.
+                                    print("\(version)")
+                                    if version != currentVersion {
+                                        upgradeAvailable = true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return upgradeAvailable
     }
 }
 
